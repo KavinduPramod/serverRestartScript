@@ -1,75 +1,20 @@
-# serverRestartScript
-# Server Restart Script with Gunicorn
+# Simple MariaDB Monitoring and Restart Script with Flask
 
-This guide explains how to run a Python script (`restart_mariadb.py`) on an Ubuntu server using Gunicorn. The script manages MariaDB server restarts based on certain conditions.
+This is a simple script written in Python using Flask that monitors the number of connections to a MariaDB database and restarts MariaDB if the number of connections exceeds a specified threshold.
 
-## Script Overview
+## Code Explanation
 
-The `restart_mariadb.py` script performs the following tasks:
+- **Flask App Setup**: Imports the Flask module and initializes a Flask application.
 
-- Checks the current connections to MariaDB every 5 minutes.
-- Restarts the MariaDB server if the number of connections exceeds a certain threshold.
-- Scheduled to restart MariaDB at 2 AM every day.
+- **Function to Get Connection Count**: Defines a function (`get_connection_count()`) to retrieve the current number of connections to the MariaDB database using the `mysql` command-line tool.
 
-## Prerequisites
+- **Function to Monitor Connections**: Defines a function (`monitor_connections()`) to continuously monitor the number of connections in a background thread. If the number of connections exceeds a specified threshold, it restarts MariaDB using `sudo systemctl restart mariadb`.
 
-Ensure the following are installed on your Ubuntu server:
-- Python 3
-- pip (Python package manager)
+- **Main Execution Block**: Starts the monitoring thread and runs the Flask application on all available interfaces (`0.0.0.0`) and port `5000`.
 
-## Installation
+## Usage
 
-1. **Install Gunicorn:**
-    ```bash
-    sudo apt install gunicorn
-    ```
-
-2. **Install Required Python Packages:**
-    ```bash
-    sudo apt install python3-psutil python3-apscheduler
-    ```
-
-## Transfer Script to Server
-
-Transfer the `serverRestartScript` folder containing the `restart_mariadb.py` script to your server using SCP or any preferred method.
-
-## Running the Script with Gunicorn
-
-1. **Connect to the Server:**
-    ```bash
-    ssh coopmis6@your_droplet_ip
-    ```
-
-2. **Navigate to the Folder:**
-    ```bash
-    cd /path/to/serverRestartScript
-    ```
-
-3. **Run the Script with Gunicorn:**
-    ```bash
-    gunicorn -w 4 -b 0.0.0.0:8000 restart_mariadb:app --daemon
-    ```
-
-    Replace `/path/to/serverRestartScript` with the actual path to your script.
-
-## Monitoring and Managing Gunicorn
-
-- **Monitor Gunicorn Process:**
-    ```bash
-    ps aux | grep gunicorn
-    ```
-
-- **Stop Gunicorn Process:**
-    Identify the Gunicorn process ID (PID) from the output of the above command and use the following to stop it:
-    ```bash
-    kill <pid>
-    ```
-
-## About the Script
-
-- **Script Location:** The `restart_mariadb.py` script should be located in the `serverRestartScript` folder.
-- **Functionality:** Monitors MariaDB connections and restarts the server if the connection threshold is exceeded.
-- **Logging:** Logs restart events and connection status to a file named `logfile.log` in the same directory.
-- **Customization:** Customize the script and Gunicorn configuration according to your requirements.
-- **Permissions:** Ensure proper permissions are set for the script and log file.
+- Ensure that the MariaDB username (`galle_user`) and password (`g@1alle@2`) are correctly provided in the `get_connection_count()` function.
+- Adjust the `threshold` variable according to your requirements.
+- Run the script and access the monitoring endpoint at `http://your_server_ip:5000/monitor`.
 

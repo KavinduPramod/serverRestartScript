@@ -1,41 +1,32 @@
+from flask import Flask
 import subprocess
-from datetime import datetime
 import time
+from threading import Thread
 
-LOG_FILE = "logfile.log"
+app = Flask(__name__)
 
-def get_active_connections():
-    # Run a command to get the number of active connections
-    cmd = "mysql -ugalle_user -pg@1alle@2 -e 'show status like \"Threads_connected\";'"
-    result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    output = result.stdout.strip().split("\n")
-    connections = int(output[1].split("\t")[1])
-    return connections
+# Function to get current number of connections
+def get_connection_count():
+    result = subprocess.run(["mysql", "-ugalle_user", "-pg@1alle@2", "-e", 'show status like "Threads_connected";'], capture_output=True, text=True)
+    output = result.stdout.strip().split('\n')
+    for line in output:
+        if line.startswith('Threads_connected'):
+            return int(line.split()[1])
 
-def restart_mariadb():
-    # Restart MariaDB service
-    subprocess.run("sudo systemctl restart mariadb", shell=True)
-    # Log restart event
-    with open(LOG_FILE, "a") as logfile:
-        logfile.write(f"{datetime.now()} - MariaDB server restarted\n")
-
-def log_connection_status(connections):
-    # Log connection status
-    with open(LOG_FILE, "a") as logfile:
-        logfile.write(f"{datetime.now()} - Active connections: {connections}\n")
-
-def main():
+# Function to monitor connections in a background thread
+def monitor_connections():
+    threshold = 50
     while True:
-        current_time = datetime.now()
-        log_connection_status(get_active_connections())
-        if current_time.hour == 2:
-            restart_mariadb()
-            print("MariaDB server restarted at 2 am.")
-        elif get_active_connections() > 300:
-            restart_mariadb()
-            print("MariaDB server restarted due to exceeding 300 connections.")
-        # Sleep for 1 hour before checking again
-        time.sleep(3600)  # 1 hour in seconds
+        connections = get_connection_count()
+        if connections > threshold:
+            subprocess.run(['sudo', 'systemctl', 'restart', 'mariadb'])
+            print(f"Restarted MariaDB. Current connections: {connections}")
+        time.sleep(300)  # Sleep for 5 minutes
 
+# Start monitoring thread when the script is executed
 if __name__ == "__main__":
-    main()
+    monitor_thread = Thread(target=monitor_connections)
+    monitor_thread.daemon = True
+    monitor_thread.start()
+
+    app.run(host='0.0.0.0', port=5000)
